@@ -11,6 +11,7 @@ import android.widget.ArrayAdapter;
 import android.widget.ListView;
 import android.widget.Toast;
 import io.realm.Realm;
+import io.realm.RealmConfiguration;
 import io.realm.exceptions.RealmMigrationNeededException;
 
 import java.io.File;
@@ -70,8 +71,6 @@ public class RealmFilesActivity extends AppCompatActivity {
     private void onItemClicked(int position) {
         try {
             String realmFileName = mAdapter.getItem(position);
-            Realm realm = Realm.getInstance(getApplicationContext(), realmFileName);
-            realm.close();
             RealmModelsActivity.start(this, realmFileName);
         } catch (RealmMigrationNeededException e) {
             Toast.makeText(getApplicationContext(), "RealmMigrationNeededException", Toast.LENGTH_SHORT).show();

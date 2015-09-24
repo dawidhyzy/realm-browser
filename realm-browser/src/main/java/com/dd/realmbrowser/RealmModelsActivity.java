@@ -9,6 +9,8 @@ import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
+
+import io.realm.RealmConfiguration;
 import io.realm.RealmObject;
 
 import java.util.ArrayList;
@@ -16,11 +18,14 @@ import java.util.List;
 
 public class RealmModelsActivity extends AppCompatActivity {
 
-    private static final String EXTRAS_REALM_FILE_NAME = "EXTRAS_REALM_FILE_NAME";
-
     public static void start(@NonNull Activity activity, @NonNull String realmFileName) {
+        RealmConfiguration realmConfiguration = new RealmConfiguration.Builder(activity.getApplicationContext()).name(realmFileName).build();
+        start(activity, realmConfiguration);
+    }
+
+    public static void start(@NonNull Activity activity, RealmConfiguration realmConfiguration){
         Intent intent = new Intent(activity, RealmModelsActivity.class);
-        intent.putExtra(EXTRAS_REALM_FILE_NAME, realmFileName);
+        RealmConfigurationProvider.getInstance().setRealmConfiguration(realmConfiguration);
         activity.startActivity(intent);
     }
 
@@ -30,6 +35,12 @@ public class RealmModelsActivity extends AppCompatActivity {
         setContentView(R.layout.ac_realm_list_view);
 
         List<String> modelList = new ArrayList<>();
+
+        if(RealmConfigurationProvider.getInstance().getRealmConfiguration() != null){
+            RealmBrowser.getInstance().clearRealmModel();
+            RealmBrowser.getInstance().addRealmModel(RealmConfigurationProvider.getInstance().getRealmConfiguration().getSchemaMediator().getModelClasses());
+        }
+
         for (Class<? extends RealmObject> file : RealmBrowser.getInstance().getRealmModelList()) {
             modelList.add(file.getSimpleName());
         }
@@ -46,7 +57,6 @@ public class RealmModelsActivity extends AppCompatActivity {
     }
 
     private void onItemClicked(int position) {
-        String realmFileName = getIntent().getStringExtra(EXTRAS_REALM_FILE_NAME);
-        RealmBrowserActivity.start(this, position, realmFileName);
+        RealmBrowserActivity.start(this, position, RealmConfigurationProvider.getInstance().getRealmConfiguration());
     }
 }

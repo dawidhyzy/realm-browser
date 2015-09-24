@@ -1,26 +1,15 @@
-buildscript {
-    repositories {
-        jcenter()
-    }
-    dependencies {
-        classpath 'com.android.tools.build:gradle:1.1.1'
-    }
-}
 apply plugin: 'com.android.library'
-
-repositories {
-    jcenter()
-}
+apply plugin: 'com.getkeepsafe.dexcount'
+apply plugin: 'me.tatarka.retrolambda'
 
 android {
-    compileSdkVersion 22
-    buildToolsVersion "22.0.1"
-
+    compileSdkVersion 23
+    buildToolsVersion "23.0.1"
     defaultConfig {
         minSdkVersion 14
-        targetSdkVersion 22
-        versionCode Integer.parseInt(project.VERSION_CODE)
-        versionName project.VERSION_NAME
+        targetSdkVersion 23
+        versionCode 5
+        versionName '0.0.6'
     }
     buildTypes {
         release {
@@ -28,15 +17,26 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+
+    packagingOptions {
+        exclude 'META-INF/services/javax.annotation.processing.Processor'
+    }
 }
 
 dependencies {
     compile fileTree(dir: 'libs', include: ['*.jar'])
-    compile 'com.android.support:appcompat-v7:22.1.1'
-    compile 'com.android.support:recyclerview-v7:21.0.3'
-    compile 'com.android.support:support-annotations:21.0.3'
-    compile 'io.realm:realm-android:0.80.1'
+    compile 'com.android.support:appcompat-v7:23.0.1'
+    compile 'com.android.support:recyclerview-v7:23.0.1'
+    compile 'io.reactivex:rxandroid:1.0.1'
+    compile 'com.jakewharton.rxbinding:rxbinding:0.2.0'
+    compile 'io.realm:realm-android:0.82.2'
 }
 
-// Used to push in maven
-//apply from: '../maven_push.gradle'
+if(file('../../artifactory.gradle').exists()) {
+    apply from: '../../artifactory.gradle'
+}

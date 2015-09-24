@@ -54,11 +54,10 @@ class RealmAdapter extends RecyclerView.Adapter<RealmAdapter.ViewHolder> {
 
     @Override
     public void onBindViewHolder(ViewHolder holder, int position) {
-        if (position % 2 == 0) {
-            holder.itemView.setBackgroundColor(mContext.getResources().getColor(R.color.rb_grey));
-        } else {
-            holder.itemView.setBackgroundColor(mContext.getResources().getColor(R.color.rb_white));
-        }
+
+        holder.itemView.setBackgroundColor(position % 2 == 0 ?
+                mContext.getResources().getColor(R.color.rb_grey) :
+                mContext.getResources().getColor(R.color.rb_white));
 
         if (mFieldList.isEmpty()) {
             holder.txtIndex.setText(null);
@@ -158,6 +157,11 @@ class RealmAdapter extends RecyclerView.Adapter<RealmAdapter.ViewHolder> {
             txtColumn2 = (TextView) v.findViewById(R.id.txtColumn2);
             txtColumn3 = (TextView) v.findViewById(R.id.txtColumn3);
         }
+    }
+
+    public void setRealmObjects(AbstractList<? extends RealmObject> realmObjects){
+        this.mRealmObjects = realmObjects;
+        notifyDataSetChanged();
     }
 
 }

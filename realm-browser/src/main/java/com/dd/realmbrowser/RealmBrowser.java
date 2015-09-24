@@ -7,7 +7,12 @@ import android.content.Context;
 import android.content.Intent;
 import android.support.annotation.NonNull;
 import android.support.v4.app.NotificationCompat;
+
+import com.dd.realmbrowser.utils.L;
+
+import io.realm.RealmConfiguration;
 import io.realm.RealmObject;
+import io.realm.annotations.RealmModule;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -31,6 +36,14 @@ public final class RealmBrowser {
     @SafeVarargs
     public final void addRealmModel(Class<? extends RealmObject>... arr) {
         mRealmModelList.addAll(Arrays.asList(arr));
+    }
+
+    public final void addRealmModel(List<Class<? extends  RealmObject>> models){
+        mRealmModelList.addAll(models);
+    }
+
+    public final void clearRealmModel(){
+        mRealmModelList.clear();
     }
 
     public static RealmBrowser getInstance() {
