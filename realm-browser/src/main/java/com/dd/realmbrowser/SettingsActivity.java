@@ -8,8 +8,9 @@ import android.support.v7.app.AppCompatActivity;
 import android.widget.CheckBox;
 import android.widget.CompoundButton;
 import com.dd.realmbrowser.model.RealmPreferences;
+import com.jakewharton.rxbinding.widget.RxCompoundButton;
 
-public class SettingsActivity extends AppCompatActivity {
+public class SettingsActivity extends BaseActivity {
 
     private RealmPreferences mRealmPreferences;
 
@@ -19,9 +20,13 @@ public class SettingsActivity extends AppCompatActivity {
     }
 
     @Override
+    int getLayoutResource() {
+        return R.layout.ac_realm_settings;
+    }
+
+    @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.ac_realm_settings);
 
         mRealmPreferences = new RealmPreferences(getApplicationContext());
 
@@ -31,11 +36,6 @@ public class SettingsActivity extends AppCompatActivity {
     private void initView() {
         CheckBox cbWrapText = (CheckBox) findViewById(R.id.cbWrapText);
         cbWrapText.setChecked(mRealmPreferences.shouldWrapText());
-        cbWrapText.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
-            @Override
-            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-                mRealmPreferences.setShouldWrapText(isChecked);
-            }
-        });
+        RxCompoundButton.checkedChanges(cbWrapText).subscribe(mRealmPreferences::setShouldWrapText);
     }
 }

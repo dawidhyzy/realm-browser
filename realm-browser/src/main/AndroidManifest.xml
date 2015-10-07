@@ -18,6 +18,10 @@
                 android:label="@string/rb_title"/>
         <activity
                 android:theme="@style/Theme.AppCompat.Light"
+                android:name=".RealmObjectActivity"
+                android:label="@string/rb_title"/>
+        <activity
+                android:theme="@style/Theme.AppCompat.Light"
                 android:name=".SettingsActivity"
                 android:label="@string/rb_title"/>
 

@@ -3,14 +3,15 @@ package com.dd.realmbrowser;
 import io.realm.RealmObject;
 
 import java.lang.reflect.Field;
+import java.util.List;
 
-class RealmHolder {
+class RealmObjectProvider {
 
-    private static final RealmHolder sInstance = new RealmHolder();
+    private static final RealmObjectProvider sInstance = new RealmObjectProvider();
     private RealmObject mObject;
     private Field mField;
 
-    public static RealmHolder getInstance() {
+    public static RealmObjectProvider getInstance() {
         return sInstance;
     }
 
@@ -29,4 +30,5 @@ class RealmHolder {
     public void setField(Field field) {
         mField = field;
     }
+
 }

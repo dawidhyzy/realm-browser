@@ -1,13 +1,11 @@
 package com.dd.realmbrowser;
 
 import android.app.Activity;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v7.app.AlertDialog;
-import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.view.Menu;
@@ -19,7 +17,6 @@ import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.Spinner;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import com.dd.realmbrowser.utils.L;
 import com.dd.realmbrowser.utils.MagicUtils;
@@ -30,6 +27,7 @@ import io.realm.RealmConfiguration;
 import io.realm.RealmList;
 import io.realm.RealmObject;
 import io.realm.RealmResults;
+import rx.Observable;
 import rx.android.schedulers.AndroidSchedulers;
 
 import java.lang.reflect.Field;
@@ -42,7 +40,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-public class RealmBrowserActivity extends AppCompatActivity implements RealmAdapter.Listener {
+public class RealmBrowserActivity extends BaseActivity implements RealmAdapter.Listener {
 
     private static final String EXTRAS_REALM_MODEL_INDEX = "REALM_MODEL_INDEX";
 
@@ -82,10 +80,13 @@ public class RealmBrowserActivity extends AppCompatActivity implements RealmAdap
         start(activity, realmConfiguration);
     }
 
+    @Override int getLayoutResource() {
+        return R.layout.ac_realm_browser;
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.ac_realm_browser);
 
         RealmConfiguration realmConfiguration =
                 RealmConfigurationProvider.getInstance().getRealmConfiguration();
@@ -98,9 +99,9 @@ public class RealmBrowserActivity extends AppCompatActivity implements RealmAdap
             mRealmObjectClass = RealmBrowser.getInstance().getRealmModelList().get(index);
             realmObjects = mRealm.allObjects(mRealmObjectClass);
         } else {
-            RealmObject object = RealmHolder.getInstance().getObject();
-            Field field = RealmHolder.getInstance().getField();
-            String methodName = MagicUtils.createMethodName(field);
+            RealmObject object = RealmObjectProvider.getInstance().getObject();
+            Field field = RealmObjectProvider.getInstance().getField();
+            String methodName = MagicUtils.createGetterMethodName(field);
             realmObjects = invokeMethod(object, methodName);
             if(MagicUtils.isParameterizedField(field)) {
                 ParameterizedType pType = (ParameterizedType) field.getGenericType();
@@ -129,22 +130,20 @@ public class RealmBrowserActivity extends AppCompatActivity implements RealmAdap
         selectDefaultFields();
         updateColumnTitle(mSelectedFieldList);
 
-
         List<Field> queryableFields = new ArrayList<>(0);
 
-        for(Field field: mFieldsList){
-            if(field.getType() == String.class
-                    || field.getType() == long.class
-                    || field.getType() == int.class
-                    || field.getType() == boolean.class ){
-                queryableFields.add(field);
-            }
-        }
+        Observable.from(mFieldsList)
+                .filter(field -> field.getType() == String.class
+                                || field.getType() == long.class
+                                || field.getType() == int.class
+                                || field.getType() == double.class
+                                || field.getType() == boolean.class)
+                .subscribe(queryableFields::add);
 
         mSpinnerFields = (Spinner) findViewById(R.id.fields);
         mEditTxtSearch = (EditText) findViewById(R.id.query);
 
-        mSpinnerFields.setAdapter(new FieldAdapter(this, android.R.layout.simple_spinner_item, queryableFields));
+        mSpinnerFields.setAdapter(new FieldSpinnerAdapter(this, android.R.layout.simple_spinner_item, queryableFields));
         mSpinnerFields.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
             public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
@@ -161,10 +160,11 @@ public class RealmBrowserActivity extends AppCompatActivity implements RealmAdap
         });
 
         RxTextView.textChangeEvents(mEditTxtSearch)
+                .compose(bindToLifecycle())
                 .debounce(1, TimeUnit.SECONDS)
                 .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(s -> {
-                    String text = s.text().toString();
+                .map(s -> s.text().toString())
+                .subscribe(text -> {
                     Field selectedField = (Field) mSpinnerFields.getSelectedItem();
                     RealmResults realmResults = null;
                     if (selectedField.getType() == String.class) {
@@ -181,6 +181,12 @@ public class RealmBrowserActivity extends AppCompatActivity implements RealmAdap
                         } catch (NumberFormatException e) {
                             e.printStackTrace();
                         }
+                    } else if (selectedField.getType() == double.class) {
+                        try {
+                            realmResults = mRealm.where(mRealmObjectClass).equalTo(selectedField.getName(), Double.parseDouble(text)).findAll();
+                        } catch (NumberFormatException e) {
+                            e.printStackTrace();
+                        }
                     } else if (selectedField.getType() == boolean.class) {
                         realmResults = mRealm.where(mRealmObjectClass).equalTo(selectedField.getName(), Boolean.parseBoolean(text)).findAll();
                     }
@@ -190,7 +196,8 @@ public class RealmBrowserActivity extends AppCompatActivity implements RealmAdap
                         mAdapter.setRealmObjects(realmObjects);
                     }
 
-        });
+                });
+
     }
 
     @Override
@@ -226,10 +233,15 @@ public class RealmBrowserActivity extends AppCompatActivity implements RealmAdap
     }
 
     @Override
-    public void onRowItemClicked(@NonNull RealmObject realmObject, @NonNull Field field) {
-        RealmHolder.getInstance().setObject(realmObject);
-        RealmHolder.getInstance().setField(field);
+    public void onRealmListSelected(@NonNull RealmObject realmObject, @NonNull Field field) {
+        RealmObjectProvider.getInstance().setObject(realmObject);
+        RealmObjectProvider.getInstance().setField(field);
         RealmBrowserActivity.start(this, RealmConfigurationProvider.getInstance().getRealmConfiguration());
+    }
+
+    @Override
+    public void onRealmObjectSelected(@NonNull RealmObject realmObject) {
+        RealmObjectActivity.start(this, realmObject);
     }
 
     @Nullable
@@ -251,11 +263,10 @@ public class RealmBrowserActivity extends AppCompatActivity implements RealmAdap
 
     private void selectDefaultFields() {
         mSelectedFieldList.clear();
-        for (Field field : mFieldsList) {
-            if (mSelectedFieldList.size() < 3) {
-                mSelectedFieldList.add(field);
-            }
-        }
+        Observable.from(mFieldsList)
+                .take(3)
+                .doOnNext(mSelectedFieldList::add)
+                .subscribe();
     }
 
     private void updateColumnTitle(List<Field> columnsList) {
@@ -286,6 +297,7 @@ public class RealmBrowserActivity extends AppCompatActivity implements RealmAdap
         mTxtColumn3.setLayoutParams(layoutParams3);
     }
 
+    @NonNull
     private LinearLayout.LayoutParams createLayoutParams() {
         return new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT);
     }
@@ -308,35 +320,26 @@ public class RealmBrowserActivity extends AppCompatActivity implements RealmAdap
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle("Select Columns to display");
         builder.setMultiChoiceItems(items, checkedItems,
-                new DialogInterface.OnMultiChoiceClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialog, int indexSelected, boolean isChecked) {
-                        Field field = mFieldsList.get(indexSelected);
-                        if (isChecked) {
-                            mTmpSelectedFieldList.add(field);
-                        } else if (mTmpSelectedFieldList.contains(field)) {
-                            mTmpSelectedFieldList.remove(field);
-                        }
+                (dialog, indexSelected, isChecked) -> {
+                    Field field = mFieldsList.get(indexSelected);
+                    if (isChecked) {
+                        mTmpSelectedFieldList.add(field);
+                    } else if (mTmpSelectedFieldList.contains(field)) {
+                        mTmpSelectedFieldList.remove(field);
                     }
                 })
-                .setPositiveButton("OK", new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialog, int id) {
-                        if (mTmpSelectedFieldList.isEmpty()) {
-                            selectDefaultFields();
-                        } else {
-                            mSelectedFieldList.clear();
-                            mSelectedFieldList.addAll(mTmpSelectedFieldList);
-                        }
-                        updateColumnTitle(mSelectedFieldList);
-                        mAdapter.setFieldList(mSelectedFieldList);
-                        mAdapter.notifyDataSetChanged();
+                .setPositiveButton("OK", (dialog, id) -> {
+                    if (mTmpSelectedFieldList.isEmpty()) {
+                        selectDefaultFields();
+                    } else {
+                        mSelectedFieldList.clear();
+                        mSelectedFieldList.addAll(mTmpSelectedFieldList);
                     }
+                    updateColumnTitle(mSelectedFieldList);
+                    mAdapter.setFieldList(mSelectedFieldList);
+                    mAdapter.notifyDataSetChanged();
                 })
-                .setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialog, int id) {
-                    }
+                .setNegativeButton("Cancel", (dialog, id) -> {
                 });
 
         AlertDialog alertDialog = builder.create();

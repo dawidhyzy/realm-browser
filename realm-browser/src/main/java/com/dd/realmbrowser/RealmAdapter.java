@@ -19,7 +19,8 @@ import java.util.List;
 class RealmAdapter extends RecyclerView.Adapter<RealmAdapter.ViewHolder> {
 
     public interface Listener {
-        void onRowItemClicked(@NonNull RealmObject realmObject, @NonNull Field field);
+        void onRealmListSelected(@NonNull RealmObject realmObject, @NonNull Field field);
+        void onRealmObjectSelected(@NonNull RealmObject realmObject);
     }
 
     private AbstractList<? extends RealmObject> mRealmObjects;
@@ -72,17 +73,17 @@ class RealmAdapter extends RecyclerView.Adapter<RealmAdapter.ViewHolder> {
             initRowTextWrapping(holder);
 
             if (mFieldList.size() == 1) {
-                initRowText(holder.txtColumn1, realmObject, mFieldList.get(0));
+                initRowText(holder.txtColumn1, holder.parent, realmObject, mFieldList.get(0));
                 holder.txtColumn2.setText(null);
                 holder.txtColumn3.setText(null);
             } else if (mFieldList.size() == 2) {
-                initRowText(holder.txtColumn1, realmObject, mFieldList.get(0));
-                initRowText(holder.txtColumn2, realmObject, mFieldList.get(1));
+                initRowText(holder.txtColumn1, holder.parent, realmObject, mFieldList.get(0));
+                initRowText(holder.txtColumn2, holder.parent, realmObject, mFieldList.get(1));
                 holder.txtColumn3.setText(null);
             }  else if (mFieldList.size() == 3) {
-                initRowText(holder.txtColumn1, realmObject, mFieldList.get(0));
-                initRowText(holder.txtColumn2, realmObject, mFieldList.get(1));
-                initRowText(holder.txtColumn3, realmObject, mFieldList.get(2));
+                initRowText(holder.txtColumn1, holder.parent, realmObject, mFieldList.get(0));
+                initRowText(holder.txtColumn2, holder.parent, realmObject, mFieldList.get(1));
+                initRowText(holder.txtColumn3, holder.parent, realmObject, mFieldList.get(2));
             }
 
         }
@@ -113,31 +114,26 @@ class RealmAdapter extends RecyclerView.Adapter<RealmAdapter.ViewHolder> {
         holder.txtColumn3.setLayoutParams(layoutParams3);
     }
 
-    private void initRowText(TextView txtColumn, RealmObject realmObject, Field field) {
+    private void initRowText(TextView txtColumn, LinearLayout parent, RealmObject realmObject, Field field) {
         if (MagicUtils.isParameterizedField(field)) {
             txtColumn.setText(MagicUtils.createParameterizedName(field));
-            txtColumn.setOnClickListener(createClickListener(realmObject, field));
+            txtColumn.setOnClickListener(createRealmListClickListener(realmObject, field));
         } else {
-            String methodName = MagicUtils.createMethodName(field);
-            txtColumn.setText(MagicUtils.invokeMethod(realmObject, methodName));
-            txtColumn.setOnClickListener(mEmptyClickListener);
+            String methodName = MagicUtils.createGetterMethodName(field);
+            txtColumn.setText(MagicUtils.invokeGetterMethod(realmObject, methodName));
+            txtColumn.setOnClickListener(emptyListener);
+            parent.setOnClickListener(createRealmObjectClickListener(realmObject));
         }
     }
 
-    private View.OnClickListener mEmptyClickListener = new View.OnClickListener() {
-        @Override
-        public void onClick(View v) {
+    View.OnClickListener emptyListener = v -> {};
 
-        }
-    };
+    private View.OnClickListener createRealmObjectClickListener(@NonNull final RealmObject realmObject) {
+        return v -> mListener.onRealmObjectSelected(realmObject);
+    }
 
-    private View.OnClickListener createClickListener(@NonNull final RealmObject realmObject, @NonNull final Field field) {
-        return new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                mListener.onRowItemClicked(realmObject, field);
-            }
-        };
+    private View.OnClickListener createRealmListClickListener(@NonNull final RealmObject realmObject, @NonNull final Field field) {
+        return v -> mListener.onRealmListSelected(realmObject, field);
     }
 
     private LinearLayout.LayoutParams createLayoutParams() {
@@ -145,6 +141,7 @@ class RealmAdapter extends RecyclerView.Adapter<RealmAdapter.ViewHolder> {
     }
 
     class ViewHolder extends RecyclerView.ViewHolder {
+        public LinearLayout parent;
         public TextView txtIndex;
         public TextView txtColumn1;
         public TextView txtColumn2;
@@ -152,6 +149,7 @@ class RealmAdapter extends RecyclerView.Adapter<RealmAdapter.ViewHolder> {
 
         public ViewHolder(View v) {
             super(v);
+            parent = (LinearLayout) v.findViewById(R.id.parent);
             txtIndex = (TextView) v.findViewById(R.id.txtIndex);
             txtColumn1 = (TextView) v.findViewById(R.id.txtColumn1);
             txtColumn2 = (TextView) v.findViewById(R.id.txtColumn2);
