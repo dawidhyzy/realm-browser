@@ -57,9 +57,6 @@ public class RealmFilesActivity extends BaseActivity {
         mAdapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, fileList);
         ListView listView = (ListView) findViewById(R.id.listView);
         listView.setAdapter(mAdapter);
-        RxAdapterView.itemClickEvents(listView)
-                .compose(bindToLifecycle())
-                .subscribe(adapterViewItemClickEvent -> onItemClicked(adapterViewItemClickEvent.position()));
     }
 
     private boolean isValid(String fileName) {
@@ -70,16 +67,5 @@ public class RealmFilesActivity extends BaseActivity {
             isValid = !mIgnoreExtensionList.contains(extension);
         }
         return isValid;
-    }
-
-    private void onItemClicked(int position) {
-        try {
-            String realmFileName = mAdapter.getItem(position);
-            RealmModelsActivity.start(this, realmFileName);
-        } catch (RealmMigrationNeededException e) {
-            Toast.makeText(getApplicationContext(), "RealmMigrationNeededException", Toast.LENGTH_SHORT).show();
-        } catch (Exception e) {
-            Toast.makeText(getApplicationContext(), "Can't open realm instance", Toast.LENGTH_SHORT).show();
-        }
     }
 }

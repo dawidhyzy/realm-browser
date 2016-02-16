@@ -17,18 +17,11 @@ import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.Spinner;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.dd.realmbrowser.utils.L;
 import com.dd.realmbrowser.utils.MagicUtils;
 import com.jakewharton.rxbinding.widget.RxTextView;
-
-import io.realm.Realm;
-import io.realm.RealmConfiguration;
-import io.realm.RealmList;
-import io.realm.RealmObject;
-import io.realm.RealmResults;
-import rx.Observable;
-import rx.android.schedulers.AndroidSchedulers;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
@@ -39,6 +32,14 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+
+import io.realm.Realm;
+import io.realm.RealmConfiguration;
+import io.realm.RealmList;
+import io.realm.RealmObject;
+import io.realm.RealmResults;
+import rx.Observable;
+import rx.android.schedulers.AndroidSchedulers;
 
 public class RealmBrowserActivity extends BaseActivity implements RealmAdapter.Listener {
 
@@ -91,7 +92,14 @@ public class RealmBrowserActivity extends BaseActivity implements RealmAdapter.L
         RealmConfiguration realmConfiguration =
                 RealmConfigurationProvider.getInstance().getRealmConfiguration();
 
-        mRealm = Realm.getInstance(realmConfiguration);
+        try {
+            mRealm = Realm.getInstance(realmConfiguration);
+        }catch (IllegalArgumentException e){
+            Toast.makeText(this, "Non-default schema unsupported", Toast.LENGTH_LONG).show();
+            e.printStackTrace();
+            onBackPressed();
+            return;
+        }
         final AbstractList<? extends RealmObject> realmObjects;
 
         if(getIntent().getExtras() != null && getIntent().getExtras().containsKey(EXTRAS_REALM_MODEL_INDEX)) {

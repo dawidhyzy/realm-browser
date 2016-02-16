@@ -5,25 +5,25 @@
     <application
             android:allowBackup="true">
         <activity
-                android:theme="@style/Theme.AppCompat.Light"
                 android:name=".RealmFilesActivity"
-                android:label="@string/rb_title"/>
+                android:label="@string/rb_title"
+                android:theme="@style/AppTheme"/>
         <activity
-                android:theme="@style/Theme.AppCompat.Light"
                 android:name=".RealmModelsActivity"
-                android:label="@string/rb_title"/>
+                android:label="@string/rb_title"
+                android:theme="@style/AppTheme"/>
         <activity
-                android:theme="@style/Theme.AppCompat.Light"
                 android:name=".RealmBrowserActivity"
-                android:label="@string/rb_title"/>
+                android:label="@string/rb_title"
+                android:theme="@style/AppTheme"/>
         <activity
-                android:theme="@style/Theme.AppCompat.Light"
                 android:name=".RealmObjectActivity"
-                android:label="@string/rb_title"/>
+                android:label="@string/rb_title"
+                android:theme="@style/AppTheme"/>
         <activity
-                android:theme="@style/Theme.AppCompat.Light"
                 android:name=".SettingsActivity"
-                android:label="@string/rb_title"/>
+                android:label="@string/rb_title"
+                android:theme="@style/AppTheme"/>
 
     </application>
 
